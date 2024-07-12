@@ -1,5 +1,5 @@
 use std::io;
-use console::{Key, Term};
+use console::{Key, Term, style};
 
 fn main() -> io::Result<()> {
     let mut tic_grid = vec![' '; 9];
@@ -11,9 +11,9 @@ fn main() -> io::Result<()> {
     loop {
         term.write_line("Press a number: 1 - 9")?;
         if is_x_turn {
-            term.write_line("--- Player 1 ---")?;
+            term.write_line("### Player 1 ###")?;
         } else {
-            term.write_line("-*- Player 2 -*- ")?;
+            term.write_line("*** Player 2 *** ")?;
         }
 
         let key = term.read_key()?;
@@ -34,7 +34,7 @@ fn main() -> io::Result<()> {
                         if let Some(winner) = check_grid(&tic_grid) {
                             print_grid(&tic_grid, &term, Some(""))?;
                             let winning_player = if winner == 'X' { "Player 1" } else { "Player 2" };
-                            term.write_line(&format!("{} wins!", winning_player))?;
+                            term.write_line(&style(format!("{} wins!", winning_player)).green().to_string())?;
                             break; // play again??
                         }
                     }
@@ -75,12 +75,13 @@ fn check_grid(grid: &[char]) -> Option<char> {
 fn print_grid(grid: &[char], term: &Term, msg: Option<&str>) -> io::Result<()> {
 
     term.clear_screen()?;
-    term.write_line("Tic - Toc - Toe Game \n")?;
+    term.write_line(&style("Tic - Toc - Toe Game \n").magenta().to_string())?;
     term.write_line(&format!(" {} | {} | {}", grid[0],grid[1],grid[2]))?;
     term.write_line("-----------")?;
     term.write_line(&format!(" {} | {} | {}", grid[3],grid[4],grid[5]))?;
     term.write_line("-----------")?;
     term.write_line(&format!(" {} | {} | {}", grid[6],grid[7],grid[8]))?;
-    term.write_line(msg.unwrap())?;
+    term.write_line(&style(msg.unwrap()).red().to_string())?;
+
     Ok(())
 }

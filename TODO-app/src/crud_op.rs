@@ -5,10 +5,18 @@ use crate::Task;
 use rusqlite::{Connection, Result};
 
 pub fn insert_list(conn: &Connection, list: &List) -> Result<()> {
-    conn.execute(
-        "INSERT INTO list (list_name, summary, category) VALUES (?1, ?2, ?3)",
-        (&list.list_name, &list.summary, &list.category),
-    )?;
+    // Check if the list already exists
+    let mut stmt = conn.prepare("SELECT COUNT(*) FROM list WHERE list_name = ?1")?;
+    let count: i32 = stmt.query_row([&list.list_name], |row| row.get(0))?;
+
+    if count > 0 {
+        println!("List with name '{}' already exists. Skipping insertion.", &list.list_name);
+    } else {
+        conn.execute(
+            "INSERT INTO list (list_name, summary, category) VALUES (?1, ?2, ?3)",
+            (&list.list_name, &list.summary, &list.category),
+        )?;
+    }
     Ok(())
 }
 

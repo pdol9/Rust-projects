@@ -5,7 +5,7 @@ edition = "2021"
 
 [dependencies]
 rusqlite = "0.31.0"
-figlet-rs = "0.1.5"
 console = "0.15.8"
 anyhow = "1.0.86"
 termion = "4.0.2"
+figlet-rs = "0.1.5"

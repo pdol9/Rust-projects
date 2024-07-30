@@ -1,11 +1,11 @@
 // CRUD Operations
 
-use crate::List;
-use crate::Task;
+use crate::structs::{List, Task};
+
 use rusqlite::{Connection, Result};
 
 pub fn insert_list(conn: &Connection, list: &List) -> Result<()> {
-    // Check if the list already exists
+
     let mut stmt = conn.prepare("SELECT COUNT(*) FROM list WHERE list_name = ?1")?;
     let count: i32 = stmt.query_row([&list.list_name], |row| row.get(0))?;
 

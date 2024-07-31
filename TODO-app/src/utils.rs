@@ -1,16 +1,10 @@
-
 use crate::structs::{List, Task};
 
-use std::fs;
-use std::io::{self, Write, BufRead};
-use figlet_rs::FIGfont;
-use console::Term;
 use anyhow::Result;
-
-// create database
-pub fn db_exists(db_file_path: &str) -> bool {
-    fs::metadata(db_file_path).is_ok()
-}
+use console::Term;
+use figlet_rs::FIGfont;
+use std::collections::HashMap;
+use std::io::{self, BufRead, Write};
 
 pub fn print_welcome_screen(mut term: &Term) -> io::Result<()> {
     term.clear_screen()?;
@@ -43,8 +37,7 @@ pub fn print_welcome_screen(mut term: &Term) -> io::Result<()> {
 
 // Display List with Tasks
 
-pub fn display_lists(lists: &Vec<List>, mut term: &Term) -> Result<()> {
-
+pub fn display_lists(stdin: &io::Stdin, lists: &Vec<List>, mut term: &Term) -> Result<()> {
     for list in lists {
         writeln!(
             term,
@@ -54,89 +47,140 @@ pub fn display_lists(lists: &Vec<List>, mut term: &Term) -> Result<()> {
             list.category.clone().unwrap_or("No category".to_string())
         )?;
     }
+    let mut buffer = String::new();
+    print!("\n\t Press ENTER to continue.");
+    io::stdout().flush()?;
+    stdin.read_line(&mut buffer)?;
+
     Ok(())
 }
 
-pub fn display_tasks(tasks: &Vec<Task>, mut term: &Term) -> Result<()> {
-
+pub fn display_tasks(stdin: &io::Stdin, tasks: &Vec<Task>, mut term: &Term) -> Result<()> {
     for task in tasks {
-        writeln!(term, "Task Name: {}, List Name: {}, Priority: {:?}, Status: {:?}, Tags: {:?}, Deadline: {:?}, Completed On: {:?}, Description: {:?}",
-            task.task_name, task.list_name, task.priority, task.status, task.tags, task.deadline, task.completed_on, task.description)?;
+        writeln!(term, "Task Name: {}, List ID: {}, Priority: {:?}, Status: {:?}, Tags: {:?}, Deadline: {:?}, Completed On: {:?}, Description: {:?}",
+            task.task_name, task.list_id, task.priority, task.status, task.tags, task.deadline, task.completed_on, task.description)?;
     }
+    let mut buffer = String::new();
+    print!("\n\t Press ENTER to continue.");
+    io::stdout().flush()?;
+    stdin.read_line(&mut buffer)?;
+
     Ok(())
 }
 
 pub fn prompt_list(stdin: &io::Stdin) -> Result<List, io::Error> {
-    let mut list_name = String::new();
-    let mut summary = String::new();
-    let mut category = String::new();
+    let mut buffer_strings: HashMap<&str, String> = [
+        ("Enter list name: ", String::new()),
+        ("Enter summary: ", String::new()),
+        ("Enter category: ", String::new()),
+    ]
+    .iter()
+    .cloned()
+    .collect();
 
-    print!("Enter list name: ");
-    io::stdout().flush()?;
-    stdin.lock().read_line(&mut list_name)?;
-
-    print!("Enter summary: ");
-    io::stdout().flush()?;
-    stdin.lock().read_line(&mut summary)?;
-
-    print!("Enter category: ");
-    io::stdout().flush()?;
-    stdin.lock().read_line(&mut category)?;
+    for (prompt, buffer) in buffer_strings.iter_mut() {
+        print!("{}", prompt);
+        io::stdout().flush()?;
+        stdin.lock().read_line(buffer)?;
+    }
 
     Ok(List {
-        list_name: list_name.trim().to_string(),
-        summary: Some(summary.trim().to_string()),
-        category: Some(category.trim().to_string()),
+        id: 0,
+        list_name: buffer_strings
+            .get("Enter list name: ")
+            .unwrap()
+            .trim()
+            .to_string(),
+        summary: Some(
+            buffer_strings
+                .get("Enter summary: ")
+                .unwrap()
+                .trim()
+                .to_string(),
+        ),
+        category: Some(
+            buffer_strings
+                .get("Enter category: ")
+                .unwrap()
+                .trim()
+                .to_string(),
+        ),
     })
 }
 
 pub fn prompt_task(stdin: &io::Stdin) -> Result<Task, io::Error> {
-    let mut task_name = String::new();
-    let mut list_name = String::new();
-    let mut priority = String::new();
-    let mut status = String::new();
-    let mut tags = String::new();
-    let mut deadline = String::new();
-    let mut description = String::new();
+    let mut buffer_strings: HashMap<&str, String> = [
+        ("Enter task name: ", String::new()),
+        ("Enter list name: ", String::new()),
+        ("Enter priority: ", String::new()),
+        ("Enter status: ", String::new()),
+        ("Enter tags: ", String::new()),
+        ("Enter deadline: ", String::new()),
+        ("Enter description: ", String::new()),
+    ]
+    .iter()
+    .cloned()
+    .collect();
 
-    print!("Enter task name: ");
-    io::stdout().flush()?;
-    stdin.lock().read_line(&mut task_name)?;
-
-    print!("Enter list name: ");
-    io::stdout().flush()?;
-    stdin.lock().read_line(&mut list_name)?;
-
-    print!("Enter priority: ");
-    io::stdout().flush()?;
-    stdin.lock().read_line(&mut priority)?;
-
-    print!("Enter status: ");
-    io::stdout().flush()?;
-    stdin.lock().read_line(&mut status)?;
-
-    print!("Enter tags (comma-separated): ");
-    io::stdout().flush()?;
-    stdin.lock().read_line(&mut tags)?;
-
-    print!("Enter deadline: ");
-    io::stdout().flush()?;
-    stdin.lock().read_line(&mut deadline)?;
-
-    print!("Enter description: ");
-    io::stdout().flush()?;
-    stdin.lock().read_line(&mut description)?;
+    for (prompt, buffer) in buffer_strings.iter_mut() {
+        print!("{}", prompt);
+        io::stdout().flush()?;
+        stdin.lock().read_line(buffer)?;
+    }
 
     Ok(Task {
         id: 0,
-        task_name: task_name.trim().to_string(),
-        list_name: list_name.trim().to_string(),
-        priority: Some(priority.trim().parse().unwrap()),
-        status: Some(status.trim().parse().unwrap()),
-        tags: Some(tags.trim().split(',').map(|s| s.to_string()).collect()),
-        deadline: Some(deadline.trim().to_string()),
+        task_name: buffer_strings
+            .get("Enter task name: ")
+            .unwrap()
+            .trim()
+            .to_string(),
+        list_id: 0,
+        list_name: buffer_strings
+            .get("Enter list name: ")
+            .unwrap()
+            .trim()
+            .to_string(),
+        priority: Some(
+            buffer_strings
+                .get("Enter priority: ")
+                .unwrap()
+                .trim()
+                .parse()
+                .unwrap(),
+        ),
+        status: Some(
+            buffer_strings
+                .get("Enter status: ")
+                .unwrap()
+                .trim()
+                .parse()
+                .unwrap(),
+        ),
+        tags: Some(
+            buffer_strings
+                .get("Enter tags: ")
+                .unwrap()
+                .trim()
+                .split(',')
+                .map(|s| s.to_string())
+                .collect(),
+        ),
+        deadline: Some(
+            buffer_strings
+                .get("Enter deadline: ")
+                .unwrap()
+                .trim()
+                .to_string(),
+        ),
         completed_on: None,
-        description: Some(description.trim().to_string()),
+        description: Some(
+            buffer_strings
+                .get("Enter description: ")
+                .unwrap()
+                .trim()
+                .to_string(),
+        ),
     })
 }
 

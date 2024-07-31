@@ -11,39 +11,48 @@ mod utils;
 use crud_op::*;
 use utils::*;
 
-use std::io::{self, BufRead, Write};
-use rusqlite::Connection;
 use anyhow::Result;
 use console::Term;
+use rusqlite::Connection;
+use std::io::{self, stdin, Write};
+use std::path::Path;
+use std::thread::sleep;
+use std::time::Duration;
 
 fn main() -> Result<()> {
-
     // init
     let db_file_path = "todo-app.db";
-    if !db_exists(db_file_path) {
-        println!("No existing database! New database will be created at: {}", db_file_path);
-    } else {
+    if Path::new(db_file_path).exists() {
         println!("Database exists! Opened DB created at: {}", db_file_path);
+    } else {
+        println!(
+            "No existing database! New database will be created at: {}",
+            db_file_path
+        );
     }
     let conn = Connection::open(db_file_path)?;
     // Create tables
     create_list_table(&conn)?;
     create_task_table(&conn)?;
 
-    let stdin = io::stdin();
+    // let stdin = io::stdin();
+    let stdin = stdin();
     let mut term = Term::stdout();
 
     // main loop
     let mut exit_app = false;
     while !exit_app {
         print_welcome_screen(&term)?;
-
         let mut input = String::new();
-        BufRead::read_line(&mut stdin.lock(), &mut input)?;
+        stdin.read_line(&mut input)?;
 
-        for c in input.trim().chars() {
-            if c.is_digit(10) {
-                let choice = c.to_digit(10).unwrap();
+        // Trim the input to remove any leading/trailing whitespace
+        let input = input.trim();
+
+        // Check if the input is a single character and a digit
+        if input.len() == 1 {
+            let input_char = input.chars().next().unwrap();
+            if let Some(choice) = input_char.to_digit(10) {
                 match choice {
                     1 => {
                         let list = prompt_list(&stdin)?;
@@ -55,23 +64,28 @@ fn main() -> Result<()> {
                     }
                     3 => {
                         let _search_word = prompt_search_word(&stdin, "list")?;
-                        let lists = fetch_lists(&conn/* , search_word.trim() */)?;
-                        display_lists(&lists, &mut term)?;
+                        let lists = fetch_lists(&conn /* , search_word.trim() */)?;
+                        let _ = display_lists(&stdin, &lists, &mut term)?;
                     }
                     4 => {
                         let search_word = prompt_search_word(&stdin, "task")?;
                         let tasks = fetch_tasks(&conn, search_word.trim())?;
-                        display_tasks(&tasks, &mut term)?;
+                        let _ = display_tasks(&stdin, &tasks, &mut term)?;
                     }
                     5 => {
-                        writeln!(term, "bye!")?;
+                        writeln!(term, "Bye!")?;
                         exit_app = true; // Set the flag to true to exit the outer loop
-                        break;
                     }
-                    _ => writeln!(term, "Invalid input.")?,
+                    _ => {
+                        writeln!(term, "---  Invalid number choice.  ---")?;
+                        sleep(Duration::from_secs(2));
+                        io::stdout().flush()?;
+                    }
                 }
             } else {
-                writeln!(term, "Invalid input.")?;
+                writeln!(term, "--- Invalid input. Please try again! ---")?;
+                sleep(Duration::from_secs(2));
+                io::stdout().flush()?;
             }
         }
     }

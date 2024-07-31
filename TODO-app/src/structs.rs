@@ -3,6 +3,8 @@ use std::str::FromStr;
 // Structs
 #[derive(Debug)]
 pub struct List {
+    #[allow(dead_code)]
+    pub id: i32,
     pub list_name: String,
     pub summary: Option<String>,
     pub category: Option<String>,
@@ -13,6 +15,7 @@ pub struct Task {
     #[allow(dead_code)]
     pub id: i32,
     pub task_name: String,
+    pub list_id: i32,
     pub list_name: String,
     pub priority: Option<Priority>,
     pub status: Option<Status>,
@@ -22,15 +25,15 @@ pub struct Task {
     pub description: Option<String>,
 }
 
-// Enums 
-#[derive(Debug,Clone)]
+// Enums
+#[derive(Debug, Clone)]
 pub enum Status {
     NotStarted,
     InProgress,
     Completed,
 }
 
-#[derive(Debug,Clone)]
+#[derive(Debug, Clone)]
 pub enum Priority {
     High,
     Medium,

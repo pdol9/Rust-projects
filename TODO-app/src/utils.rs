@@ -1,10 +1,33 @@
-use crate::structs::{List, Task};
+use crate::structs::{List, Priority, Status, Task};
+
+use crate::crud_op::{create_list_table, create_task_table};
 
 use anyhow::Result;
 use console::Term;
 use figlet_rs::FIGfont;
+use rusqlite::{Connection, Error as RusqliteError};
 use std::collections::HashMap;
 use std::io::{self, BufRead, Write};
+use std::path::Path;
+
+pub fn set_up_db_connection() -> Result<Connection, RusqliteError> {
+    let db_file_path = "todo-app.db";
+    if Path::new(db_file_path).exists() {
+        println!("Database exists! Opened DB created at: {}", db_file_path);
+    } else {
+        println!(
+            "No existing database! New database will be created at: {}",
+            db_file_path
+        );
+    }
+
+    let conn = Connection::open(db_file_path)?;
+
+    create_list_table(&conn)?;
+    create_task_table(&conn)?;
+
+    Ok(conn)
+}
 
 pub fn print_welcome_screen(mut term: &Term) -> io::Result<()> {
     term.clear_screen()?;
@@ -21,8 +44,8 @@ pub fn print_welcome_screen(mut term: &Term) -> io::Result<()> {
     let msg: Vec<String> = vec![
         "Create a new LIST".to_string(),
         "Create a new TASK".to_string(),
-        "Show current LIST".to_string(),
-        "Show current TASKS".to_string(),
+        "Show a LIST".to_string(),
+        "Show a TASKS".to_string(),
         "QUIT".to_string(),
     ];
     term.write_all(b"Press a corresponding number:\n")?;
@@ -141,22 +164,12 @@ pub fn prompt_task(stdin: &io::Stdin) -> Result<Task, io::Error> {
             .unwrap()
             .trim()
             .to_string(),
-        priority: Some(
-            buffer_strings
-                .get("Enter priority: ")
-                .unwrap()
-                .trim()
-                .parse()
-                .unwrap(),
-        ),
-        status: Some(
-            buffer_strings
-                .get("Enter status: ")
-                .unwrap()
-                .trim()
-                .parse()
-                .unwrap(),
-        ),
+        priority: Some(Priority::from(
+            buffer_strings.get("Enter priority: ").unwrap().trim(),
+        )),
+        status: Some(Status::from(
+            buffer_strings.get("Enter status: ").unwrap().trim(),
+        )),
         tags: Some(
             buffer_strings
                 .get("Enter tags: ")
@@ -184,10 +197,10 @@ pub fn prompt_task(stdin: &io::Stdin) -> Result<Task, io::Error> {
     })
 }
 
-pub fn prompt_search_word(stdin: &io::Stdin, for_what: &str) -> Result<String, io::Error> {
+pub fn prompt_search_word(stdin: &io::Stdin) -> Result<String, io::Error> {
     let mut search_word = String::new();
-    print!("Enter search word for {}: ", for_what);
+    print!("Enter search word: ");
     io::stdout().flush()?;
-    stdin.lock().read_line(&mut search_word)?;
+    stdin.read_line(&mut search_word)?;
     Ok(search_word)
 }

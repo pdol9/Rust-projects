@@ -2,11 +2,15 @@
 
 use crate::structs::{List, Task};
 
-use rusqlite::{Connection, Result};
+use rusqlite::{params, Connection, Result};
 
-pub fn fetch_lists(conn: &Connection) -> Result<Vec<List>> {
-    let mut stmt = conn.prepare("SELECT id, list_name, summary, category FROM list")?;
-    let list_iter = stmt.query_map([], |row| {
+// find entries which contain search_word
+pub fn fetch_lists(conn: &Connection, search_word: &str) -> Result<Vec<List>> {
+    let sql_query = "SELECT id, list_name, summary, category FROM list WHERE list_name LIKE ?1";
+    let search_pattern = format!("%{}%", search_word);
+
+    let mut stmt = conn.prepare(sql_query)?;
+    let list_iter = stmt.query_map(params![search_pattern], |row| {
         Ok(List {
             id: row.get(0)?,
             list_name: row.get(1)?,
@@ -22,17 +26,21 @@ pub fn fetch_lists(conn: &Connection) -> Result<Vec<List>> {
     Ok(lists)
 }
 
-pub fn fetch_tasks(conn: &Connection, list_name: &str) -> Result<Vec<Task>> {
-    let mut stmt = conn.prepare("SELECT id, task_name, list_id, list_name, priority, status, tags, deadline, completed_on, description FROM task WHERE list_id = ?1")?;
-    let task_iter = stmt.query_map([list_name], |row| {
-        let tags: Option<String> = row.get(3)?;
+pub fn fetch_tasks(conn: &Connection, search_word: &str) -> Result<Vec<Task>> {
+    let sql_query = "SELECT id, task_name, list_id, list_name, priority, status, tags, deadline, completed_on, description FROM task WHERE task_name LIKE ?1";
+    let search_pattern = format!("%{}%", search_word);
+
+    let mut stmt = conn.prepare(sql_query)?;
+
+    let task_iter = stmt.query_map(params![search_pattern], |row| {
+        let tags: Option<String> = row.get(6)?;
         Ok(Task {
             id: row.get(0)?,
             task_name: row.get(1)?,
             list_id: row.get(2)?,
             list_name: row.get(3)?,
-            priority: row.get::<usize, Option<i32>>(4)?.map(|p| p.into()),
-            status: row.get::<usize, Option<i32>>(5)?.map(|s| s.into()),
+            priority: row.get::<_, Option<i32>>(4)?.map(|p| p.into()), // Assuming Priority can be constructed from i32
+            status: row.get::<_, Option<i32>>(5)?.map(|s| s.into()), // Assuming Status can be constructed from i32
             tags: tags.map(|t| t.split(',').map(|s| s.to_string()).collect()),
             deadline: row.get(7)?,
             completed_on: row.get(8)?,
@@ -80,6 +88,7 @@ pub fn insert_task(conn: &Connection, task: &Task) -> Result<()> {
             &task.description,
         ),
     )?;
+    // conn.commit()?;              // check depen.
     Ok(())
 }
 

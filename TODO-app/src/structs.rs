@@ -1,5 +1,3 @@
-use std::str::FromStr;
-
 // Structs
 #[derive(Debug)]
 pub struct List {
@@ -40,36 +38,6 @@ pub enum Priority {
     Low,
 }
 
-impl From<Status> for i32 {
-    fn from(status: Status) -> Self {
-        match status {
-            Status::NotStarted => 0,
-            Status::InProgress => 1,
-            Status::Completed => 2,
-        }
-    }
-}
-
-impl From<i32> for Status {
-    fn from(value: i32) -> Self {
-        match value {
-            2 => Status::Completed,
-            1 => Status::InProgress,
-            _ => Status::NotStarted,
-        }
-    }
-}
-
-impl From<Priority> for i32 {
-    fn from(priority: Priority) -> Self {
-        match priority {
-            Priority::High => 2,
-            Priority::Medium => 1,
-            Priority::Low => 0,
-        }
-    }
-}
-
 impl From<i32> for Priority {
     fn from(value: i32) -> Self {
         match value {
@@ -80,28 +48,34 @@ impl From<i32> for Priority {
     }
 }
 
-impl FromStr for Priority {
-    type Err = ();
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match s.trim() {
-            "Low" => Ok(Priority::Low),
-            "Medium" => Ok(Priority::Medium),
-            "High" => Ok(Priority::High),
-            _ => Err(()),
+impl From<&str> for Priority {
+    fn from(s: &str) -> Self {
+        match s.to_lowercase().as_str() {
+            "high" => Priority::High,
+            "medium" => Priority::Medium,
+            "low" => Priority::Low,
+            _ => Priority::Medium, // default to Medium if parsing fails
         }
     }
 }
 
-impl FromStr for Status {
-    type Err = ();
+impl From<&str> for Status {
+    fn from(s: &str) -> Self {
+        match s {
+            "not started" => Status::NotStarted,
+            "in progress" => Status::InProgress,
+            "completed" => Status::Completed,
+            _ => Status::NotStarted, // default to NotStarted if parsing fails
+        }
+    }
+}
 
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match s.trim() {
-            "NotStarted" => Ok(Status::NotStarted),
-            "InProgress" => Ok(Status::InProgress),
-            "Completed" => Ok(Status::Completed),
-            _ => Err(()),
+impl From<i32> for Status {
+    fn from(value: i32) -> Self {
+        match value {
+            2 => Status::Completed,
+            1 => Status::InProgress,
+            _ => Status::NotStarted,
         }
     }
 }

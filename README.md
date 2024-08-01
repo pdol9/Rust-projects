@@ -8,4 +8,4 @@ A console based game
 
 ## TODO app
 
-A console app which uses rusqlite to store tasks and lists
+A console app which uses rusqlite (SQLite) to store tasks and lists

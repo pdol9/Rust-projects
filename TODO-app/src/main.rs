@@ -1,8 +1,8 @@
-/*  *************************************  */
-/*                                         */
-/*                TODO app                 */
-/*                                         */
-/*  *************************************  */
+/*  ****************************************************************************  */
+/*                                                                                */
+/*                                     TODO app                                   */
+/*                                                                                */
+/*  ****************************************************************************  */
 
 mod crud_op;
 mod structs;
@@ -13,30 +13,14 @@ use utils::*;
 
 use anyhow::Result;
 use console::Term;
-use rusqlite::Connection;
-use std::io::{self, stdin, Write};
-use std::path::Path;
+use std::io::{self, Write};
 use std::thread::sleep;
 use std::time::Duration;
 
 fn main() -> Result<()> {
-    // init
-    let db_file_path = "todo-app.db";
-    if Path::new(db_file_path).exists() {
-        println!("Database exists! Opened DB created at: {}", db_file_path);
-    } else {
-        println!(
-            "No existing database! New database will be created at: {}",
-            db_file_path
-        );
-    }
-    let conn = Connection::open(db_file_path)?;
-    // Create tables
-    create_list_table(&conn)?;
-    create_task_table(&conn)?;
-
-    // let stdin = io::stdin();
-    let stdin = stdin();
+    // initialization
+    let conn = set_up_db_connection()?;
+    let stdin = io::stdin();
     let mut term = Term::stdout();
 
     // main loop
@@ -63,18 +47,18 @@ fn main() -> Result<()> {
                         insert_task(&conn, &task)?;
                     }
                     3 => {
-                        let _search_word = prompt_search_word(&stdin, "list")?;
-                        let lists = fetch_lists(&conn /* , search_word.trim() */)?;
+                        let search_word = prompt_search_word(&stdin)?;
+                        let lists = fetch_lists(&conn, search_word.trim())?;
                         let _ = display_lists(&stdin, &lists, &mut term)?;
                     }
                     4 => {
-                        let search_word = prompt_search_word(&stdin, "task")?;
+                        let search_word = prompt_search_word(&stdin)?;
                         let tasks = fetch_tasks(&conn, search_word.trim())?;
                         let _ = display_tasks(&stdin, &tasks, &mut term)?;
                     }
                     5 => {
                         writeln!(term, "Bye!")?;
-                        exit_app = true; // Set the flag to true to exit the outer loop
+                        exit_app = true;
                     }
                     _ => {
                         writeln!(term, "---  Invalid number choice.  ---")?;
@@ -89,5 +73,6 @@ fn main() -> Result<()> {
             }
         }
     }
+
     Ok(())
 }
